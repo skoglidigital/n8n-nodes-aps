@@ -7,6 +7,10 @@ const {
 	__testables,
 } = require('../../dist/nodes/ApsModelDerivativeTrigger/ApsModelDerivativeTrigger.node.js');
 
+test('Model Derivative trigger is not exposed as an AI tool', () => {
+	assert.equal(new ApsModelDerivativeTrigger().description.usableAsTool, undefined);
+});
+
 function createHookContext(overrides = {}) {
 	const staticData = overrides.staticData ?? {};
 	const requests = [];

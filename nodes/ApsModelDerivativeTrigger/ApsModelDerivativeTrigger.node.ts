@@ -822,6 +822,8 @@ export function extractModelDerivativeEvent(payload: IDataObject): IDataObject {
 	};
 }
 
+// Trigger nodes wait for events and cannot be invoked as AI tools.
+// eslint-disable-next-line @n8n/community-nodes/node-usable-as-tool
 export class ApsModelDerivativeTrigger implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'APS Model Derivative Trigger',
@@ -836,7 +838,6 @@ export class ApsModelDerivativeTrigger implements INodeType {
 		},
 		inputs: [],
 		outputs: [NodeConnectionTypes.Main],
-		usableAsTool: true,
 		credentials: [
 			{
 				name: 'apsOAuth2Api',

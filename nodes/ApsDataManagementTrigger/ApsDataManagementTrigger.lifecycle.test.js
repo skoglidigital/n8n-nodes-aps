@@ -14,6 +14,10 @@ const {
 	scopeMatches,
 } = require('../../dist/nodes/ApsDataManagementTrigger/ApsDataManagementTrigger.node.js');
 
+test('Data Management trigger is not exposed as an AI tool', () => {
+	assert.equal(new ApsDataManagementTrigger().description.usableAsTool, undefined);
+});
+
 test('parseTimestampValue normalizes epoch seconds, epoch milliseconds, and ISO timestamps', () => {
 	assert.equal(parseTimestampValue(1_700_000_000), 1_700_000_000_000);
 	assert.equal(parseTimestampValue('1700000000'), 1_700_000_000_000);

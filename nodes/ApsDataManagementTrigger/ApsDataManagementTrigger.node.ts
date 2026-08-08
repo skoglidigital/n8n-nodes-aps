@@ -1295,6 +1295,8 @@ async function resolveProjectRootFolderIdForLoadOptions(
 	return ((rootFolderData.id as string | undefined) ?? '').trim();
 }
 
+// Trigger nodes wait for events and cannot be invoked as AI tools.
+// eslint-disable-next-line @n8n/community-nodes/node-usable-as-tool
 export class ApsDataManagementTrigger implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'APS Data Management Trigger',
@@ -1309,7 +1311,6 @@ export class ApsDataManagementTrigger implements INodeType {
 		},
 		inputs: [],
 		outputs: [NodeConnectionTypes.Main],
-		usableAsTool: true,
 		credentials: [
 			{
 				name: 'apsOAuth2Api',
