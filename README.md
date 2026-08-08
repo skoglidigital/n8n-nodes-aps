@@ -26,7 +26,7 @@ Workflow triggers for Model Derivative extraction events.
 
 ### APS AEC Data Model
 
-Curated GraphQL queries and a raw GraphQL escape hatch for hubs, projects, folders, element groups, elements, properties, extraction status, and diffs. Curated list operations return one n8n item per result by default.
+Curated GraphQL queries and a raw GraphQL escape hatch for hubs, projects, folders, element groups, elements, properties, extraction status, and diffs. The node includes version- and time-based element-group diffs, fully paginated property differences for one element, and multi-group element retrieval for up to 25 element-group IDs. Curated list operations return one n8n item per result by default.
 
 ## Installation
 

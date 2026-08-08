@@ -28,7 +28,9 @@ export interface AecGraphqlPaginationOptions {
 	limitVariableName?: string;
 	limitKind?: AecGraphqlConnectionLimitKind;
 	timeoutSeconds?: number;
+	startedAt?: number;
 	now?: () => number;
+	transformResult?: (result: IDataObject, response: IDataObject) => IDataObject;
 	execute: (query: string, variables: IDataObject) => Promise<AecGraphqlPageResponse>;
 }
 
@@ -87,7 +89,7 @@ export async function paginateAecGraphqlConnection(
 	);
 	const timeoutMs = timeoutSeconds * 1000;
 	const now = options.now ?? Date.now;
-	const startedAt = now();
+	const startedAt = options.startedAt ?? now();
 	const cursorVariableName = options.cursorVariableName ?? 'cursor';
 	const limitVariableName = options.limitVariableName ?? 'limit';
 	const path = Array.isArray(options.pathToConnection) ? options.pathToConnection : options.pathToConnection.split('.');
@@ -122,7 +124,7 @@ export async function paginateAecGraphqlConnection(
 		const pageResults = Array.isArray(connection.results) ? connection.results : [];
 		for (const item of pageResults) {
 			if (isPlainObject(item)) {
-				results.push(item);
+				results.push(options.transformResult?.(item, page.response) ?? item);
 			}
 			if (results.length >= maxItems) {
 				stoppedReason = 'maxItems';

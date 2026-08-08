@@ -77,6 +77,34 @@ test('returnAll false fetches one page and preserves next cursor', async () => {
 	assert.equal(result.pagination.stoppedReason, 'singlePage');
 });
 
+test('pagination can transform connection results with page-level response context', async () => {
+	const result = await paginateAecGraphqlConnection({
+		query: 'query',
+		variables: {},
+		pathToConnection: 'diff.differences',
+		returnAll: true,
+		transformResult: (item, response) => ({
+			...item,
+			element: response.data.diff.element,
+		}),
+		execute: async () => ({
+			response: {
+				data: {
+					diff: {
+						element: { id: 'element-1' },
+						differences: {
+							results: [{ type: 'MODIFICATION' }],
+							pagination: { cursor: null },
+						},
+					},
+				},
+			},
+		}),
+	});
+
+	assert.deepEqual(result.results, [{ type: 'MODIFICATION', element: { id: 'element-1' } }]);
+});
+
 test('pagination detects duplicate cursors', async () => {
 	await assert.rejects(
 		paginateAecGraphqlConnection({
@@ -176,6 +204,27 @@ test('pagination stops return-all cursor walks on timeout before fetching indefi
 	);
 
 	assert.equal(attempts, 1);
+});
+
+test('pagination can share an earlier start time across related cursor walks', async () => {
+	let attempts = 0;
+	await assert.rejects(
+		paginateAecGraphqlConnection({
+			query: 'query',
+			variables: {},
+			pathToConnection: 'elements',
+			returnAll: true,
+			timeoutSeconds: 1,
+			startedAt: 0,
+			now: () => 1001,
+			execute: async () => {
+				attempts++;
+				return { response: { data: { elements: { results: [], pagination: { cursor: null } } } } };
+			},
+		}),
+		/timed out after 1 second\(s\) and 0 page\(s\)/,
+	);
+	assert.equal(attempts, 0);
 });
 
 test('pagination defaults below APS AEC GraphQL limit boundary', () => {

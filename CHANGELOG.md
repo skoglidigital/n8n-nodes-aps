@@ -12,6 +12,7 @@ The project follows [Semantic Versioning](https://semver.org/).
 - APS Data Management, Data Management Trigger, Model Derivative, Model Derivative Trigger, and AEC Data Model nodes.
 - Official n8n node CLI build, lint, development, and provenance-based publish workflows.
 - Docs Custom Attribute definition listing, version batch-get, and version attribute batch-update operations.
+- AEC Data Model element-group diffs by version and time, complete per-element property-difference pagination, and `elementsByElementGroups` support with the APS 25-ID limit.
 
 ### Changed
 
@@ -19,6 +20,7 @@ The project follows [Semantic Versioning](https://semver.org/).
 - Replaced raw AEC preset names with human-readable operation labels and made connection results separate n8n items by default.
 - Removed incomplete AEC geometry presets that returned only GraphQL type metadata.
 - Made webhook signature verification require the exact raw request body and stopped copying signature tokens into workflow static data.
+- Applied one global item, page, and elapsed-time budget to recursive AEC project-folder searches.
 
 ### Security
 

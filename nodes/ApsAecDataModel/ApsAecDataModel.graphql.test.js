@@ -42,6 +42,7 @@ const PRESET_QUERY_NAMES = [
 	'elementGroupExtractionStatus',
 	'elementGroupExtractionStatusAtTip',
 	'diffElementByVersionWithLatest',
+	'diffElementGroupByTimeWithLatest',
 	'diffElementGroupByVersionWithLatest',
 	'elementGroupAtTip',
 	'elementGroupsByHub',
@@ -53,6 +54,7 @@ const PRESET_QUERY_NAMES = [
 	'elementsByProject',
 	'elementsByFolder',
 	'elementsByElementGroup',
+	'elementsByElementGroups',
 	'elementsByElementGroupAtVersion',
 	'elementsByElementGroupParallel',
 	'elementsByElementGroupParallelCursors',
@@ -106,6 +108,9 @@ const CONNECTION_PRESET_QUERY_NAMES = [
 	'foldersByFolder',
 	'associatedElementGroupsByGroup',
 	'associatedElementsByElements',
+	'diffElementByVersionWithLatest',
+	'diffElementGroupByTimeWithLatest',
+	'diffElementGroupByVersionWithLatest',
 	'elementGroupsByHub',
 	'elementGroupsByProject',
 	'elementGroupsByFolder',
@@ -114,6 +119,7 @@ const CONNECTION_PRESET_QUERY_NAMES = [
 	'elementsByProject',
 	'elementsByFolder',
 	'elementsByElementGroup',
+	'elementsByElementGroups',
 	'elementsByElementGroupAtVersion',
 	'elementsByElementGroupParallel',
 	'elementsByElementGroupParallelCursors',
@@ -132,6 +138,7 @@ const PRESET_RESOURCE_GROUPS = {
 		'elementGroupByVersionNumber',
 		'elementGroupExtractionStatus',
 		'elementGroupExtractionStatusAtTip',
+		'diffElementGroupByTimeWithLatest',
 		'diffElementGroupByVersionWithLatest',
 		'elementGroupAtTip',
 		'elementGroupsByHub',
@@ -148,6 +155,7 @@ const PRESET_RESOURCE_GROUPS = {
 		'elementsByProject',
 		'elementsByFolder',
 		'elementsByElementGroup',
+		'elementsByElementGroups',
 		'elementsByElementGroupAtVersion',
 		'elementsByElementGroupParallel',
 		'elementsByElementGroupParallelCursors',
@@ -170,7 +178,11 @@ const PRESET_PARAMETERS = {
 	versionNumber: 3,
 	elementId: ' element-1 ',
 	elementIds: ' element-1, element-2 ',
+	elementGroupIds: ' element-group-1, element-group-2 ',
 	fileUrn: ' file-urn-1 ',
+	diffStartTime: '2026-08-01T10:30:00.000Z',
+	diffChangeTypes: ['ADDITION', 'MODIFICATION'],
+	diffPropertyLimit: 25,
 	propertyDefinitionId: ' property-definition-1 ',
 	propertyName: ' Revit Category Type Id ',
 	propertyDefinitionCollectionId: ' property-collection-1 ',
@@ -188,14 +200,26 @@ const EXPECTED_NEW_PRESET_VARIABLES = {
 	elementGroupByVersionNumber: { elementGroupId: 'element-group-1', versionNumber: 3 },
 	elementGroupExtractionStatus: { elementGroupId: 'element-group-1', versionNumber: 3 },
 	elementGroupExtractionStatusAtTip: { fileUrn: 'file-urn-1', projectId: 'project-1' },
-	diffElementByVersionWithLatest: { elementId: 'element-1', versionNumber: 3 },
-	diffElementGroupByVersionWithLatest: { elementGroupId: 'element-group-1', versionNumber: 3 },
+	diffElementByVersionWithLatest: { elementId: 'element-1', startElementGroupVersion: 3 },
+	diffElementGroupByTimeWithLatest: {
+		elementGroupId: 'element-group-1',
+		time: '2026-08-01T10:30:00.000Z',
+		changeFilter: ['ADDITION', 'MODIFICATION'],
+		propertyDifferencesLimit: 25,
+	},
+	diffElementGroupByVersionWithLatest: {
+		elementGroupId: 'element-group-1',
+		startVersion: 3,
+		changeFilter: ['ADDITION', 'MODIFICATION'],
+		propertyDifferencesLimit: 25,
+	},
 	elementGroupAtTip: { elementGroupId: 'element-group-1' },
 	elementAtTip: { elementId: 'element-1' },
 	elementsByHub: { hubId: 'hub-1' },
 	elementsByProject: { projectId: 'project-1' },
 	elementsByFolder: { projectId: 'project-1', folderId: 'folder-1' },
 	elementsByElementGroup: { elementGroupId: 'element-group-1' },
+	elementsByElementGroups: { elementGroupIds: ['element-group-1', 'element-group-2'] },
 	elementsByElementGroupAtVersion: { elementGroupId: 'element-group-1', versionNumber: 3 },
 	elementsByElementGroupParallel: { elementGroupId: 'element-group-1' },
 	elementsByElementGroupParallelCursors: { elementGroupId: 'element-group-1' },
@@ -295,9 +319,21 @@ test('node groups predefined AEC Data Model resources and exposes exact Referenc
 	assert.ok(elementGroupId.displayOptions.show.operation.includes('categoriesByElementGroup'));
 	assert.ok(elementGroupId.displayOptions.show.operation.includes('elementsByCategory'));
 	assert.ok(elementGroupId.displayOptions.show.operation.includes('elementGroupAtTip'));
+	assert.ok(elementGroupId.displayOptions.show.operation.includes('diffElementGroupByTimeWithLatest'));
 	const elementIds = node.description.properties.find((property) => property.name === 'elementIds');
 	assert.deepEqual(elementIds.displayOptions.show.resource, ['element']);
 	assert.deepEqual(elementIds.displayOptions.show.operation, ['associatedElementsByElements']);
+	const elementGroupIds = node.description.properties.find((property) => property.name === 'elementGroupIds');
+	assert.deepEqual(elementGroupIds.displayOptions.show.resource, ['element']);
+	assert.deepEqual(elementGroupIds.displayOptions.show.operation, ['elementsByElementGroups']);
+	assert.match(elementGroupIds.description, /25/);
+	const diffStartTime = node.description.properties.find((property) => property.name === 'diffStartTime');
+	assert.deepEqual(diffStartTime.displayOptions.show.operation, ['diffElementGroupByTimeWithLatest']);
+	const diffChangeTypes = node.description.properties.find((property) => property.name === 'diffChangeTypes');
+	assert.deepEqual(diffChangeTypes.options.map((option) => option.value), ['ADDITION', 'MODIFICATION', 'REMOVAL']);
+	const diffPropertyLimit = node.description.properties.find((property) => property.name === 'diffPropertyLimit');
+	assert.equal(diffPropertyLimit.default, 99);
+	assert.equal(diffPropertyLimit.typeOptions.maxValue, 99);
 	const categoryPropertyName = node.description.properties.find((property) => property.name === 'categoryPropertyName');
 	assert.deepEqual(categoryPropertyName.displayOptions.show.resource, ['elementGroup']);
 	assert.deepEqual(categoryPropertyName.displayOptions.show.operation, ['categoriesByElementGroup']);
@@ -414,6 +450,16 @@ test('elementsByCategory can request element references', () => {
 	});
 });
 
+test('elementsByElementGroups enforces the APS limit of 25 group IDs', () => {
+	const preset = aecDataModelTestables.AEC_DATA_MODEL_PRESETS.elementsByElementGroups;
+	const context = {
+		getNode: () => ({ name: 'APS AEC Data Model', type: 'apsAecDataModel' }),
+		getNodeParameter: () => Array.from({ length: 26 }, (_, index) => `group-${index + 1}`),
+	};
+
+	assert.throws(() => preset.variables(context, 0), /supports at most 25 IDs/);
+});
+
 test('folder-based predefined resources send projectId and folderId per Reference Guide', () => {
 	const parameters = {
 		projectId: ' project-1 ',
@@ -469,6 +515,31 @@ test('new predefined resources build expected query variables', () => {
 		aecDataModelTestables.AEC_DATA_MODEL_PRESETS.elementsByElementGroupAtVersion.query,
 		/elementsByElementGroupAtVersion\(elementGroupId: \$elementGroupId, versionNumber: \$versionNumber/,
 	);
+	assert.match(
+		aecDataModelTestables.AEC_DATA_MODEL_PRESETS.diffElementByVersionWithLatest.query,
+		/differences\(pagination: \{ limit: \$limit, cursor: \$cursor \}\)/,
+	);
+	assert.match(
+		aecDataModelTestables.AEC_DATA_MODEL_PRESETS.diffElementGroupByVersionWithLatest.query,
+		/results: result/,
+	);
+	assert.match(
+		aecDataModelTestables.AEC_DATA_MODEL_PRESETS.diffElementGroupByTimeWithLatest.query,
+		/time: \$time, changeFilter: \$changeFilter/,
+	);
+});
+
+test('group diff presets omit an empty change filter so APS returns every change type', () => {
+	const context = {
+		getNodeParameter: (name) => ({ ...PRESET_PARAMETERS, diffChangeTypes: [] })[name],
+	};
+
+	for (const queryName of ['diffElementGroupByTimeWithLatest', 'diffElementGroupByVersionWithLatest']) {
+		const preset = aecDataModelTestables.AEC_DATA_MODEL_PRESETS[queryName];
+		const variables = preset.variables(context, 0);
+		assert.deepEqual(variables.changeFilter, []);
+		assert.ok(!Object.hasOwn(preset.requestVariables(variables), 'changeFilter'));
+	}
 });
 
 test('new predefined resources send requests and carry scoped context', async () => {
@@ -500,6 +571,20 @@ test('new predefined resources send requests and carry scoped context', async ()
 				httpRequestWithAuthentication: async (_credentialName, requestOptions) => {
 					calls.push(requestOptions.body);
 					if (preset.operation === 'getMany') {
+						if (queryName === 'diffElementByVersionWithLatest') {
+							return {
+								data: {
+									diffElementByVersionWithLatest: {
+										type: 'MODIFICATION',
+										element: { id: 'element-1', name: 'Wall' },
+										differences: {
+											results: [{ type: 'MODIFICATION', item: { name: 'Height', value: 3 } }],
+											pagination: { cursor: null },
+										},
+									},
+								},
+							};
+						}
 						return {
 							data: {
 								[queryName]: {
@@ -528,6 +613,10 @@ test('new predefined resources send requests and carry scoped context', async ()
 			assert.deepEqual(calls[0].variables, { ...expectedVariables, limit: 7, cursor: 'start' }, queryName);
 			assert.equal(result[0][0].json.data.pagination.pagesFetched, 1, queryName);
 			assertPresetContext(result[0][0].json.data.results[0], expectedVariables, preset.resultContextFields, queryName);
+			if (queryName === 'diffElementByVersionWithLatest') {
+				assert.equal(result[0][0].json.data.results[0].differenceType, 'MODIFICATION');
+				assert.deepEqual(result[0][0].json.data.results[0].element, { id: 'element-1', name: 'Wall' });
+			}
 		} else {
 			assert.deepEqual(calls[0].variables, expectedVariables, queryName);
 			assertPresetContext(result[0][0].json.data[queryName], expectedVariables, preset.resultContextFields, queryName);
@@ -762,6 +851,67 @@ test('predefined foldersByProject operation searches nested folders by exact nam
 	assert.match(calls[0].query, /foldersByProject/);
 	assert.match(calls[1].query, /foldersByFolder/);
 	assert.deepEqual(calls[1].variables, { projectId: 'project-1', folderId: 'folder-1', limit: 50 });
+});
+
+test('nested folder search shares max-items and max-pages guardrails with the root query', async () => {
+	const calls = [];
+	const node = new ApsAecDataModel();
+	const context = {
+		getInputData: () => [{ json: {} }],
+		getNode: () => ({ name: 'APS AEC Data Model', type: 'apsAecDataModel' }),
+		getCredentials: async () => ({ scope: 'data:read' }),
+		getNodeParameter: (name) => ({
+			resource: 'foldersByProject',
+			operation: 'getMany',
+			region: 'US',
+			projectId: 'project-1',
+			folderNameFilter: 'Folder',
+			folderNameMatch: 'contains',
+			folderNameCaseSensitive: true,
+			presetReturnAll: true,
+			presetOutputResultsAsItems: false,
+			presetLimit: 50,
+			presetCursor: '',
+			presetMaxItems: 2,
+			presetMaxPages: 2,
+			presetTimeoutSeconds: 300,
+		})[name],
+		continueOnFail: () => false,
+		helpers: {
+			httpRequestWithAuthentication: async (_credentialName, requestOptions) => {
+				calls.push(requestOptions.body);
+				if (requestOptions.body.query.includes('foldersByProject')) {
+					return {
+						data: {
+							foldersByProject: {
+								results: [{ id: 'folder-1', name: 'Folder 1' }],
+								pagination: { cursor: null },
+							},
+						},
+					};
+				}
+				return {
+					data: {
+						foldersByFolder: {
+							results: [
+								{ id: 'folder-2', name: 'Folder 2' },
+								{ id: 'folder-3', name: 'Folder 3' },
+							],
+							pagination: { cursor: 'unfetched' },
+						},
+					},
+				};
+			},
+		},
+	};
+
+	const result = await node.execute.call(context);
+
+	assert.equal(calls.length, 2);
+	assert.equal(result[0][0].json.data.results.length, 2);
+	assert.equal(result[0][0].json.data.pagination.pagesFetched, 2);
+	assert.equal(result[0][0].json.data.pagination.stoppedReason, 'maxItems');
+	assert.equal(result[0][0].json.data.pagination.hasMore, true);
 });
 
 test('predefined foldersByProject operation filters folders by contained name case sensitively', async () => {

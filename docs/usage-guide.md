@@ -97,6 +97,10 @@ The **GraphQL** resource can execute a raw query with a variables object when a 
 
 Curated connection operations output one n8n item per result by default. Turn off **Output Results as Items** when a workflow needs the pagination envelope and result array as one item.
 
+Use **Diff Element Group by Version/Time with Latest** to page through changed elements. Each changed element includes up to **Property Differences per Element** nested changes and exposes a nested cursor when more exist. Feed its element ID and starting version into **Diff Element by Version with Latest** to page through every property difference without silent truncation.
+
+**Elements by Element Groups** accepts a JSON array or comma-separated list of at most 25 element-group IDs, matching the APS API limit. Recursive project-folder name searches share one global Max Items, Max Pages, and Timeout budget across root and descendant requests.
+
 Select the region that contains the data: US/AMER, EMEA, or AUS. AEC Data Model access must be enabled for the Autodesk account, and the source model must meet APS eligibility requirements.
 
 Geometry presets from the source repository are intentionally not exposed in this beta because they returned only GraphQL schema metadata. Use raw GraphQL for an explicitly selected geometry payload until typed geometry operations are added and tested.

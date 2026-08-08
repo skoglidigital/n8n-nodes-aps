@@ -32,6 +32,7 @@ interface AecDataModelPreset {
 	connectionPath?: string;
 	limitKind?: AecGraphqlConnectionLimitKind;
 	resultContextFields?: Record<string, string>;
+	transformResult?: (result: IDataObject, response: IDataObject) => IDataObject;
 	variables: (context: IExecuteFunctions, itemIndex: number) => IDataObject;
 	requestVariables?: (variables: IDataObject) => IDataObject;
 }
@@ -45,6 +46,7 @@ const AEC_DATA_MODEL_PRESET_RESOURCES = [
 	'elementGroupExtractionStatus',
 	'elementGroupExtractionStatusAtTip',
 	'diffElementByVersionWithLatest',
+	'diffElementGroupByTimeWithLatest',
 	'diffElementGroupByVersionWithLatest',
 	'elementGroupAtTip',
 	'elementGroupsByHub',
@@ -56,6 +58,7 @@ const AEC_DATA_MODEL_PRESET_RESOURCES = [
 	'elementsByProject',
 	'elementsByFolder',
 	'elementsByElementGroup',
+	'elementsByElementGroups',
 	'elementsByElementGroupAtVersion',
 	'elementsByElementGroupParallel',
 	'elementsByElementGroupParallelCursors',
@@ -84,6 +87,9 @@ const AEC_DATA_MODEL_CONNECTION_PRESET_RESOURCES: AecDataModelPresetResource[] =
 	'foldersByFolder',
 	'associatedElementGroupsByGroup',
 	'associatedElementsByElements',
+	'diffElementByVersionWithLatest',
+	'diffElementGroupByTimeWithLatest',
+	'diffElementGroupByVersionWithLatest',
 	'elementGroupsByHub',
 	'elementGroupsByProject',
 	'elementGroupsByFolder',
@@ -92,6 +98,7 @@ const AEC_DATA_MODEL_CONNECTION_PRESET_RESOURCES: AecDataModelPresetResource[] =
 	'elementsByProject',
 	'elementsByFolder',
 	'elementsByElementGroup',
+	'elementsByElementGroups',
 	'elementsByElementGroupAtVersion',
 	'elementsByElementGroupParallel',
 	'elementsByElementGroupParallelCursors',
@@ -110,6 +117,7 @@ const AEC_DATA_MODEL_PRESET_GROUPS = {
 		'elementGroupByVersionNumber',
 		'elementGroupExtractionStatus',
 		'elementGroupExtractionStatusAtTip',
+		'diffElementGroupByTimeWithLatest',
 		'diffElementGroupByVersionWithLatest',
 		'elementGroupAtTip',
 		'elementGroupsByHub',
@@ -126,6 +134,7 @@ const AEC_DATA_MODEL_PRESET_GROUPS = {
 		'elementsByProject',
 		'elementsByFolder',
 		'elementsByElementGroup',
+		'elementsByElementGroups',
 		'elementsByElementGroupAtVersion',
 		'elementsByElementGroupParallel',
 		'elementsByElementGroupParallelCursors',
@@ -233,6 +242,16 @@ const PROPERTY_DEFINITION_RESULT_FIELDS = `id
       isArchived
       isReadOnly
       shouldCopy`;
+
+const PROPERTY_DIFFERENCE_RESULT_FIELDS = `type
+          oldItem {
+            name
+            value
+          }
+          item {
+            name
+            value
+          }`;
 
 const AEC_DATA_MODEL_PRESETS: Record<AecDataModelPresetResource, AecDataModelPreset> = {
 	categoriesByElementGroup: {
@@ -398,36 +417,111 @@ const AEC_DATA_MODEL_PRESETS: Record<AecDataModelPresetResource, AecDataModelPre
 		}),
 	},
 	diffElementByVersionWithLatest: {
-		operation: 'get',
+		operation: 'getMany',
+		connectionPath: 'diffElementByVersionWithLatest.differences',
+		limitKind: 'property',
 		resultContextFields: {
 			elementId: 'elementId',
-			versionNumber: 'versionNumber',
+			startElementGroupVersion: 'startElementGroupVersion',
 		},
-		query: `query DiffElementByVersionWithLatest($elementId: ID!, $versionNumber: Int!) {
-  diffElementByVersionWithLatest(elementId: $elementId, versionNumber: $versionNumber) {
-    __typename
+		query: `query DiffElementByVersionWithLatest($elementId: ID!, $startElementGroupVersion: Int, $limit: Int, $cursor: String) {
+  diffElementByVersionWithLatest(elementId: $elementId, startElementGroupVersion: $startElementGroupVersion) {
+		type
+		element {
+			id
+			name
+		}
+		differences(pagination: { limit: $limit, cursor: $cursor }) {
+			pagination {
+				cursor
+			}
+			results {
+				${PROPERTY_DIFFERENCE_RESULT_FIELDS}
+			}
+		}
   }
 }`,
 		variables: (context, itemIndex) => ({
 			elementId: (context.getNodeParameter('elementId', itemIndex) as string).trim(),
-			versionNumber: parseIntegerParameter(context, itemIndex, 'versionNumber'),
+			startElementGroupVersion: parseIntegerParameter(context, itemIndex, 'versionNumber'),
 		}),
+		transformResult: (result, response) => addElementDifferenceContext(result, response),
 	},
-	diffElementGroupByVersionWithLatest: {
-		operation: 'get',
+	diffElementGroupByTimeWithLatest: {
+		operation: 'getMany',
+		connectionPath: 'diffElementGroupByTimeWithLatest',
+		limitKind: 'element',
 		resultContextFields: {
 			elementGroupId: 'elementGroupId',
-			versionNumber: 'versionNumber',
+			time: 'time',
 		},
-		query: `query DiffElementGroupByVersionWithLatest($elementGroupId: ID!, $versionNumber: Int!) {
-  diffElementGroupByVersionWithLatest(elementGroupId: $elementGroupId, versionNumber: $versionNumber) {
-    __typename
+		query: `query DiffElementGroupByTimeWithLatest($elementGroupId: ID!, $time: DateTime, $changeFilter: [DifferenceType], $limit: Int, $cursor: String, $propertyDifferencesLimit: Int) {
+  diffElementGroupByTimeWithLatest(elementGroupId: $elementGroupId, time: $time, changeFilter: $changeFilter, pagination: { limit: $limit, cursor: $cursor }) {
+		pagination {
+			cursor
+		}
+		results: result {
+			type
+			element {
+				id
+				name
+			}
+			differences(pagination: { limit: $propertyDifferencesLimit }) {
+				pagination {
+					cursor
+				}
+				results {
+					${PROPERTY_DIFFERENCE_RESULT_FIELDS}
+				}
+			}
+		}
+	}
+}`,
+		variables: (context, itemIndex) => ({
+			elementGroupId: (context.getNodeParameter('elementGroupId', itemIndex) as string).trim(),
+			time: (context.getNodeParameter('diffStartTime', itemIndex) as string).trim(),
+			changeFilter: context.getNodeParameter('diffChangeTypes', itemIndex, []) as string[],
+			propertyDifferencesLimit: context.getNodeParameter('diffPropertyLimit', itemIndex, 99) as number,
+		}),
+		requestVariables: omitEmptyDiffChangeFilter,
+	},
+	diffElementGroupByVersionWithLatest: {
+		operation: 'getMany',
+		connectionPath: 'diffElementGroupByVersionWithLatest',
+		limitKind: 'element',
+		resultContextFields: {
+			elementGroupId: 'elementGroupId',
+			startVersion: 'startVersion',
+		},
+		query: `query DiffElementGroupByVersionWithLatest($elementGroupId: ID!, $startVersion: Int, $changeFilter: [DifferenceType], $limit: Int, $cursor: String, $propertyDifferencesLimit: Int) {
+  diffElementGroupByVersionWithLatest(elementGroupId: $elementGroupId, startVersion: $startVersion, changeFilter: $changeFilter, pagination: { limit: $limit, cursor: $cursor }) {
+		pagination {
+			cursor
+		}
+		results: result {
+			type
+			element {
+				id
+				name
+			}
+			differences(pagination: { limit: $propertyDifferencesLimit }) {
+				pagination {
+					cursor
+				}
+				results {
+					${PROPERTY_DIFFERENCE_RESULT_FIELDS}
+				}
+			}
+		}
   }
 }`,
 		variables: (context, itemIndex) => ({
 			elementGroupId: (context.getNodeParameter('elementGroupId', itemIndex) as string).trim(),
-			versionNumber: parseIntegerParameter(context, itemIndex, 'versionNumber'),
+			startVersion: parseIntegerParameter(context, itemIndex, 'versionNumber'),
+			changeFilter: context.getNodeParameter('diffChangeTypes', itemIndex, []) as string[],
+			propertyDifferencesLimit: context.getNodeParameter('diffPropertyLimit', itemIndex, 99) as number,
 		}),
+		requestVariables: omitEmptyDiffChangeFilter,
 	},
 	elementGroupAtTip: {
 		operation: 'get',
@@ -763,6 +857,27 @@ const AEC_DATA_MODEL_PRESETS: Record<AecDataModelPresetResource, AecDataModelPre
 }`,
 		variables: (context, itemIndex) => ({
 			elementGroupId: (context.getNodeParameter('elementGroupId', itemIndex) as string).trim(),
+		}),
+	},
+	elementsByElementGroups: {
+		operation: 'getMany',
+		connectionPath: 'elementsByElementGroups',
+		limitKind: 'element',
+		resultContextFields: {
+			elementGroupIds: 'elementGroupIds',
+		},
+		query: `query ElementsByElementGroups($elementGroupIds: [ID!]!, $limit: Int, $cursor: String) {
+  elementsByElementGroups(elementGroupIds: $elementGroupIds, pagination: { limit: $limit, cursor: $cursor }) {
+		pagination {
+			cursor
+		}
+		results {
+			${ELEMENT_RESULT_FIELDS}
+		}
+  }
+}`,
+		variables: (context, itemIndex) => ({
+			elementGroupIds: parseIdListParameter(context, itemIndex, 'elementGroupIds', 25),
 		}),
 	},
 	elementsByElementGroupAtVersion: {
@@ -1231,6 +1346,7 @@ export class ApsAecDataModel implements INodeType {
 							'associatedElementGroupsByGroup',
 							'elementGroupByVersionNumber',
 							'elementGroupExtractionStatus',
+							'diffElementGroupByTimeWithLatest',
 							'diffElementGroupByVersionWithLatest',
 							'elementGroupAtTip',
 							'categoriesByElementGroup',
@@ -1246,6 +1362,23 @@ export class ApsAecDataModel implements INodeType {
 					},
 				},
 				description: 'AEC Data Model element group ID',
+			},
+			{
+				displayName: 'Element Group IDs',
+				name: 'elementGroupIds',
+				type: 'string',
+				typeOptions: {
+					rows: 4,
+				},
+				default: '',
+				required: true,
+				displayOptions: {
+					show: {
+						resource: ['element'],
+						operation: ['elementsByElementGroups'],
+					},
+				},
+				description: 'Up to 25 element group IDs as a JSON array or comma-separated list',
 			},
 			{
 				displayName: 'Category Property Name',
@@ -1360,7 +1493,57 @@ export class ApsAecDataModel implements INodeType {
 						],
 					},
 				},
-				description: 'AEC Data Model element group version number',
+				description: 'AEC Data Model element group version number. Diff operations compare from this version to latest.',
+			},
+			{
+				displayName: 'Start Time',
+				name: 'diffStartTime',
+				type: 'dateTime',
+				default: '',
+				required: true,
+				displayOptions: {
+					show: {
+						resource: ['elementGroup'],
+						operation: ['diffElementGroupByTimeWithLatest'],
+					},
+				},
+				description: 'Timestamp to compare from, up to the latest element group version',
+			},
+			{
+				displayName: 'Change Types',
+				name: 'diffChangeTypes',
+				type: 'multiOptions',
+				default: [],
+				options: [
+					{ name: 'Addition', value: 'ADDITION' },
+					{ name: 'Modification', value: 'MODIFICATION' },
+					{ name: 'Removal', value: 'REMOVAL' },
+				],
+				displayOptions: {
+					show: {
+						resource: ['elementGroup'],
+						operation: ['diffElementGroupByTimeWithLatest', 'diffElementGroupByVersionWithLatest'],
+					},
+				},
+				description: 'Optional difference types to include. Leave empty to return all change types.',
+			},
+			{
+				displayName: 'Property Differences per Element',
+				name: 'diffPropertyLimit',
+				type: 'number',
+				typeOptions: {
+					minValue: 1,
+					maxValue: 99,
+				},
+				default: 99,
+				displayOptions: {
+					show: {
+						resource: ['elementGroup'],
+						operation: ['diffElementGroupByTimeWithLatest', 'diffElementGroupByVersionWithLatest'],
+					},
+				},
+				description:
+					'Maximum property differences included per changed element. If differences.pagination.cursor is present, use Diff Element by Version with Latest for complete property pagination.',
 			},
 			{
 				displayName: 'Element ID',
@@ -1825,6 +2008,7 @@ export class ApsAecDataModel implements INodeType {
 					const maxItems = this.getNodeParameter('presetMaxItems', itemIndex, 10000) as number;
 					const maxPages = this.getNodeParameter('presetMaxPages', itemIndex, 100) as number;
 					const timeoutSeconds = this.getNodeParameter('presetTimeoutSeconds', itemIndex, 300) as number;
+					const paginationStartedAt = Date.now();
 
 					const paginated = await paginateAecGraphqlConnection({
 						query: preset.query,
@@ -1837,6 +2021,8 @@ export class ApsAecDataModel implements INodeType {
 						maxItems,
 						maxPages,
 						timeoutSeconds,
+						startedAt: paginationStartedAt,
+						transformResult: preset.transformResult,
 						execute: async (pageQuery, pageVariables) =>
 							await executeAecGraphql(this, {
 								query: pageQuery,
@@ -1846,10 +2032,9 @@ export class ApsAecDataModel implements INodeType {
 					});
 
 					let presetResults = paginated.results;
+					let presetPagination = paginated.pagination;
 					if (shouldExpandFoldersByProjectSearch(presetResource, this, itemIndex, returnAll)) {
-						presetResults = [
-							...presetResults,
-							...(await collectNestedFoldersByProject(this, {
+						const nested = await collectNestedFoldersByProject(this, {
 								projectId: variables.projectId as string,
 								region,
 								rootFolders: paginated.results,
@@ -1857,8 +2042,16 @@ export class ApsAecDataModel implements INodeType {
 								maxItems,
 								maxPages,
 								timeoutSeconds,
-							})),
-						];
+								startedAt: paginationStartedAt,
+								initialPagesFetched: paginated.pagination.pagesFetched as number,
+							});
+						presetResults = [...presetResults, ...nested.results];
+						presetPagination = {
+							...presetPagination,
+							pagesFetched: (paginated.pagination.pagesFetched as number) + nested.pagesFetched,
+							stoppedReason: nested.stoppedReason,
+							hasMore: nested.hasMore,
+						};
 					}
 
 					const results = filterPresetResults(
@@ -1879,7 +2072,7 @@ export class ApsAecDataModel implements INodeType {
 							operation,
 							region,
 							data: {
-								pagination: paginated.pagination,
+								pagination: presetPagination,
 								results,
 							},
 							metadata: paginated.metadata,
@@ -2098,12 +2291,22 @@ async function collectNestedFoldersByProject(
 		maxItems: number;
 		maxPages: number;
 		timeoutSeconds: number;
+		startedAt: number;
+		initialPagesFetched: number;
 	},
-): Promise<IDataObject[]> {
+): Promise<{
+	results: IDataObject[];
+	pagesFetched: number;
+	stoppedReason: 'cursorExhausted' | 'maxItems' | 'maxPages';
+	hasMore: boolean;
+}> {
 	const foldersByFolderPreset = AEC_DATA_MODEL_PRESETS.foldersByFolder;
 	const descendants: IDataObject[] = [];
 	const queue = [...options.rootFolders];
 	const seenFolderIds = new Set<string>();
+	let pagesFetched = 0;
+	let stoppedReason: 'cursorExhausted' | 'maxItems' | 'maxPages' = 'cursorExhausted';
+	let hasMore = false;
 
 	for (const folder of queue) {
 		const id = typeof folder.id === 'string' ? folder.id.trim() : '';
@@ -2112,7 +2315,21 @@ async function collectNestedFoldersByProject(
 		}
 	}
 
-	while (queue.length > 0 && descendants.length < options.maxItems) {
+	while (queue.length > 0) {
+		const remainingItems = options.maxItems - options.rootFolders.length - descendants.length;
+		if (remainingItems <= 0) {
+			stoppedReason = 'maxItems';
+			hasMore = true;
+			break;
+		}
+
+		const remainingPages = options.maxPages - options.initialPagesFetched - pagesFetched;
+		if (remainingPages <= 0) {
+			stoppedReason = 'maxPages';
+			hasMore = true;
+			break;
+		}
+
 		const folder = queue.shift();
 		const folderId = typeof folder?.id === 'string' ? folder.id.trim() : '';
 		if (!folderId) continue;
@@ -2127,9 +2344,10 @@ async function collectNestedFoldersByProject(
 			returnAll: true,
 			limit: options.limit,
 			limitKind: foldersByFolderPreset.limitKind ?? 'folder',
-			maxItems: options.maxItems,
-			maxPages: options.maxPages,
+			maxItems: remainingItems,
+			maxPages: remainingPages,
 			timeoutSeconds: options.timeoutSeconds,
+			startedAt: options.startedAt,
 			execute: async (pageQuery, pageVariables) =>
 				await executeAecGraphql(context, {
 					query: pageQuery,
@@ -2137,6 +2355,10 @@ async function collectNestedFoldersByProject(
 					region: options.region,
 				}),
 		});
+		pagesFetched += paginated.pagination.pagesFetched as number;
+		if (paginated.pagination.hasMore) {
+			hasMore = true;
+		}
 
 		for (const child of paginated.results) {
 			const childId = typeof child.id === 'string' ? child.id.trim() : '';
@@ -2145,11 +2367,25 @@ async function collectNestedFoldersByProject(
 			seenFolderIds.add(childId);
 			descendants.push(child);
 			queue.push(child);
-			if (descendants.length >= options.maxItems) break;
+			if (options.rootFolders.length + descendants.length >= options.maxItems) break;
+		}
+
+		if (paginated.pagination.stoppedReason === 'maxItems') {
+			stoppedReason = 'maxItems';
+			break;
+		}
+		if (paginated.pagination.stoppedReason === 'maxPages') {
+			stoppedReason = 'maxPages';
+			break;
 		}
 	}
 
-	return descendants;
+	return {
+		results: descendants,
+		pagesFetched,
+		stoppedReason,
+		hasMore: hasMore || queue.length > 0,
+	};
 }
 
 function getOptionalStringParameter(context: IExecuteFunctions, itemIndex: number, parameterName: string): string {
@@ -2208,6 +2444,28 @@ function isDataObject(value: unknown): value is IDataObject {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function addElementDifferenceContext(result: IDataObject, response: IDataObject): IDataObject {
+	const data = isDataObject(response.data) ? response.data : {};
+	const difference = isDataObject(data.diffElementByVersionWithLatest)
+		? data.diffElementByVersionWithLatest
+		: {};
+
+	return {
+		...result,
+		differenceType: difference.type,
+		element: difference.element,
+	};
+}
+
+function omitEmptyDiffChangeFilter(variables: IDataObject): IDataObject {
+	if (Array.isArray(variables.changeFilter) && variables.changeFilter.length === 0) {
+		const requestVariables = { ...variables };
+		delete requestVariables.changeFilter;
+		return requestVariables;
+	}
+	return variables;
+}
+
 function parseIntegerParameter(context: IExecuteFunctions, itemIndex: number, parameterName: string): number {
 	const value = context.getNodeParameter(parameterName, itemIndex) as number | string;
 	const parsed = typeof value === 'number' ? value : Number.parseInt(value.trim(), 10);
@@ -2219,36 +2477,53 @@ function parseIntegerParameter(context: IExecuteFunctions, itemIndex: number, pa
 	return parsed;
 }
 
-function parseIdListParameter(context: IExecuteFunctions, itemIndex: number, parameterName: string): string[] {
+function parseIdListParameter(
+	context: IExecuteFunctions,
+	itemIndex: number,
+	parameterName: string,
+	maxItems?: number,
+): string[] {
 	const value = context.getNodeParameter(parameterName, itemIndex) as string | string[];
+	let ids: string[];
 	if (Array.isArray(value)) {
-		return value.map((id) => id.trim()).filter(Boolean);
+		ids = value.map((id) => id.trim()).filter(Boolean);
+	} else {
+		const trimmed = value.trim();
+		if (!trimmed) return [];
+
+		if (trimmed.startsWith('[')) {
+			let parsed: unknown;
+			try {
+				parsed = JSON.parse(trimmed) as unknown;
+			} catch (error) {
+				throw new NodeOperationError(context.getNode(), `${formatPresetVariableName(parameterName)} must be valid JSON.`, {
+					itemIndex,
+					description: error instanceof Error ? error.message : undefined,
+				});
+			}
+			if (!Array.isArray(parsed) || !parsed.every((id) => typeof id === 'string')) {
+				throw new NodeOperationError(
+					context.getNode(),
+					`${formatPresetVariableName(parameterName)} must be a JSON string array.`,
+					{ itemIndex },
+				);
+			}
+			ids = parsed.map((id) => id.trim()).filter(Boolean);
+		} else {
+			ids = trimmed
+				.split(',')
+				.map((id) => id.trim())
+				.filter(Boolean);
+		}
 	}
 
-	const trimmed = value.trim();
-	if (!trimmed) return [];
-
-	if (trimmed.startsWith('[')) {
-		try {
-			const parsed = JSON.parse(trimmed) as unknown;
-			if (Array.isArray(parsed) && parsed.every((id) => typeof id === 'string')) {
-				return parsed.map((id) => id.trim()).filter(Boolean);
-			}
-		} catch (error) {
-			throw new NodeOperationError(context.getNode(), `${formatPresetVariableName(parameterName)} must be valid JSON.`, {
-				itemIndex,
-				description: error instanceof Error ? error.message : undefined,
-			});
-		}
-		throw new NodeOperationError(context.getNode(), `${formatPresetVariableName(parameterName)} must be a JSON string array.`, {
+	if (maxItems !== undefined && ids.length > maxItems) {
+		throw new NodeOperationError(context.getNode(), `${formatPresetVariableName(parameterName)} supports at most ${maxItems} IDs.`, {
 			itemIndex,
 		});
 	}
 
-	return trimmed
-		.split(',')
-		.map((id) => id.trim())
-		.filter(Boolean);
+	return ids;
 }
 
 export const __aecDataModelTestables = {

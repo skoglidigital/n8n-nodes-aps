@@ -52,6 +52,10 @@ Run these checks against a disposable APS application and a non-production ACC p
 - [ ] Run curated hub, project, folder, element-group, element, property, extraction-status, and diff queries where the tenant has matching data.
 - [ ] Verify default list output is one n8n item per connection node and preserves input pairing.
 - [ ] Verify cursor pagination and maximum-item limits.
+- [ ] Verify a nested folder-name search cannot exceed its global Max Items, Max Pages, or Timeout budget.
+- [ ] Compare an element group by both version and time; verify change-type filters and nested property cursors.
+- [ ] Follow a changed element with Diff Element by Version with Latest and exhaust all property-difference pages.
+- [ ] Query elements across 2–25 element groups and confirm a 26-ID input fails locally before an APS request.
 - [ ] Run a raw GraphQL query as the escape hatch for a field not exposed by the curated operations.
 - [ ] Repeat representative queries in every region claimed as supported.
 - [ ] Record unavailable public-beta features as known limitations; do not expose placeholder typed operations.
