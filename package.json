@@ -1,0 +1,78 @@
+{
+	"name": "n8n-nodes-aps",
+	"version": "0.1.0",
+	"description": "Community-maintained n8n nodes for Autodesk Platform Services",
+	"license": "MIT",
+	"homepage": "https://github.com/skoglidigital/n8n-nodes-aps#readme",
+	"keywords": [
+		"n8n-community-node-package",
+		"n8n",
+		"autodesk",
+		"aps",
+		"autodesk-platform-services",
+		"aec",
+		"bim"
+	],
+	"author": {
+		"name": "Skogli Digital",
+		"email": "opensource@skogli.digital",
+		"url": "https://skogli.digital"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/skoglidigital/n8n-nodes-aps.git"
+	},
+	"bugs": {
+		"url": "https://github.com/skoglidigital/n8n-nodes-aps/issues"
+	},
+	"engines": {
+		"node": ">=22.0.0"
+	},
+	"scripts": {
+		"build": "n8n-node build",
+		"build:watch": "tsc --watch",
+		"dev": "n8n-node dev",
+		"lint": "n8n-node lint",
+		"lint:fix": "n8n-node lint --fix",
+		"pretest": "npm run build",
+		"test": "node --test \"nodes/**/*.test.js\"",
+		"prepack": "npm run build",
+		"pack:check": "npm pack --dry-run",
+		"release": "n8n-node release",
+		"prepublishOnly": "n8n-node prerelease"
+	},
+	"files": [
+		"dist/credentials",
+		"dist/icons",
+		"dist/nodes",
+		"dist/package.json"
+	],
+	"publishConfig": {
+		"access": "public"
+	},
+	"n8n": {
+		"n8nNodesApiVersion": 1,
+		"strict": true,
+		"credentials": [
+			"dist/credentials/ApsOAuth2Api.credentials.js"
+		],
+		"nodes": [
+			"dist/nodes/ApsAecDataModel/ApsAecDataModel.node.js",
+			"dist/nodes/ApsDataManagement/ApsDataManagement.node.js",
+			"dist/nodes/ApsDataManagementTrigger/ApsDataManagementTrigger.node.js",
+			"dist/nodes/ApsModelDerivative/ApsModelDerivative.node.js",
+			"dist/nodes/ApsModelDerivativeTrigger/ApsModelDerivativeTrigger.node.js"
+		]
+	},
+	"devDependencies": {
+		"@n8n/node-cli": "0.42.2",
+		"@types/node": "22.15.21",
+		"eslint": "9.39.4",
+		"prettier": "3.8.3",
+		"release-it": "20.2.0",
+		"typescript": "5.9.3"
+	},
+	"peerDependencies": {
+		"n8n-workflow": "*"
+	}
+}

@@ -1,0 +1,13 @@
+{
+  "node": "n8n-nodes-aps.apsModelDerivativeTrigger",
+  "nodeVersion": "1.0",
+  "codexVersion": "1.0",
+  "categories": ["Development", "Data & Storage"],
+  "resources": {
+    "primaryDocumentation": [
+      {
+        "url": "https://github.com/skoglidigital/n8n-nodes-aps#aps-model-derivative-trigger"
+      }
+    ]
+  }
+}
