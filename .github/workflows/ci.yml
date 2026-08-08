@@ -55,3 +55,9 @@ jobs:
 
       - name: Verify npm package contents
         run: npm run pack:check
+
+      - name: Install the tarball in clean n8n
+        if: matrix.node-version == '22'
+        run: npm run smoke:install
+        env:
+          N8N_SMOKE_VERSION: '2.33.7'

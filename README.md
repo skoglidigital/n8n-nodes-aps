@@ -32,6 +32,8 @@ Curated GraphQL queries and a raw GraphQL escape hatch for hubs, projects, folde
 
 Install `n8n-nodes-aps` from **Settings → Community Nodes** in a self-hosted n8n instance after the first npm release. See the [n8n community-node installation guide](https://docs.n8n.io/integrations/community-nodes/installation/).
 
+The release artifact is automatically installed and catalog-checked in a clean n8n 2.33.7 instance on Node.js 22. Live APS/ACC workflow validation is tracked separately and must be completed before the stable release.
+
 ## APS credentials
 
 1. Create an application in the [Autodesk Platform Services developer portal](https://aps.autodesk.com/).

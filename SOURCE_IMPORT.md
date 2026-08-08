@@ -27,4 +27,4 @@ Explicitly excluded:
 
 This repository starts with a clean history so excluded private material is not retained in public Git history.
 
-Public publication is gated on a Skogli Digital maintainer confirming that the organization owns, or has permission to relicense, every imported file under the repository's MIT license.
+On 2026-08-08, a Skogli Digital maintainer confirmed that Skogli Digital owns the imported nodes and approved publishing the new package under the MIT license.

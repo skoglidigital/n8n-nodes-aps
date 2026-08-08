@@ -13,6 +13,7 @@ The project follows [Semantic Versioning](https://semver.org/).
 - Official n8n node CLI build, lint, development, and provenance-based publish workflows.
 - Docs Custom Attribute definition listing, version batch-get, and version attribute batch-update operations.
 - AEC Data Model element-group diffs by version and time, complete per-element property-difference pagination, and `elementsByElementGroups` support with the APS 25-ID limit.
+- A clean-install smoke test that packs the release artifact, installs it in n8n 2.33.7, and verifies all five APS node types and the OAuth2 credential through n8n's authenticated type catalogs.
 
 ### Changed
 

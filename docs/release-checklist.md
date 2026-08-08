@@ -4,10 +4,11 @@ This checklist separates repository work from the organization, account, and ten
 
 ## Before creating the public repository
 
-- [ ] Confirm that Skogli Digital owns, or has permission to relicense, every imported source file under MIT.
+- [x] Confirm that Skogli Digital owns, or has permission to relicense, every imported source file under MIT.
 - [ ] Confirm the final repository and npm package name: `skoglidigital/n8n-nodes-aps` / `n8n-nodes-aps`.
 - [ ] Review `SOURCE_IMPORT.md` and the initial commit for private infrastructure, credentials, customer names, and Skogli-only workflow logic.
 - [ ] Run lint, build, tests, dependency audit, secret scan, and `npm run pack:check` from a clean checkout.
+- [x] Install the generated tarball in clean n8n 2.33.7 and verify all five APS nodes and the APS OAuth2 credential load.
 
 ## GitHub organization setup
 

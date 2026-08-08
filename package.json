@@ -38,6 +38,7 @@
 		"test": "node --test \"nodes/**/*.test.js\"",
 		"prepack": "npm run build",
 		"pack:check": "npm pack --dry-run",
+		"smoke:install": "node scripts/clean-n8n-smoke.mjs",
 		"release": "n8n-node release",
 		"prepublishOnly": "n8n-node prerelease"
 	},
