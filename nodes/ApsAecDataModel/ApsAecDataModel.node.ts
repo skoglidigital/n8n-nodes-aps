@@ -555,6 +555,9 @@ const AEC_DATA_MODEL_PRESETS: Record<AecDataModelPresetResource, AecDataModelPre
   project(projectId: $projectId) {
     id
     name
+    alternativeIdentifiers {
+      dataManagementAPIProjectId
+    }
     hub {
       id
       name
@@ -610,6 +613,9 @@ const AEC_DATA_MODEL_PRESETS: Record<AecDataModelPresetResource, AecDataModelPre
     results {
       id
       name
+      alternativeIdentifiers {
+        dataManagementAPIProjectId
+      }
       hub {
         id
         name

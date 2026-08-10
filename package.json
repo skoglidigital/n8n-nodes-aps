@@ -1,6 +1,6 @@
 {
 	"name": "n8n-nodes-aps",
-	"version": "0.1.0",
+	"version": "0.1.0-beta.1",
 	"description": "Community-maintained n8n nodes for Autodesk Platform Services",
 	"license": "MIT",
 	"homepage": "https://github.com/skoglidigital/n8n-nodes-aps#readme",
@@ -35,7 +35,7 @@
 		"lint": "n8n-node lint",
 		"lint:fix": "n8n-node lint --fix",
 		"pretest": "npm run build",
-		"test": "node --test \"nodes/**/*.test.js\"",
+		"test": "node --test",
 		"prepack": "npm run build",
 		"pack:check": "npm pack --dry-run",
 		"smoke:install": "node scripts/clean-n8n-smoke.mjs",
@@ -49,7 +49,8 @@
 		"dist/package.json"
 	],
 	"publishConfig": {
-		"access": "public"
+		"access": "public",
+		"tag": "beta"
 	},
 	"n8n": {
 		"n8nNodesApiVersion": 1,

@@ -97,6 +97,8 @@ The **GraphQL** resource can execute a raw query with a variables object when a 
 
 Curated connection operations output one n8n item per result by default. Turn off **Output Results as Items** when a workflow needs the pagination envelope and result array as one item.
 
+AEC Data Model project IDs differ from Data Management project IDs. **Get Project** and **Get Many Projects** include `alternativeIdentifiers.dataManagementAPIProjectId`, so workflows can match an AEC project to the `b.<uuid>` project ID returned by Data Management before calling folder, element-group, or element operations.
+
 Use **Diff Element Group by Version/Time with Latest** to page through changed elements. Each changed element includes up to **Property Differences per Element** nested changes and exposes a nested cursor when more exist. Feed its element ID and starting version into **Diff Element by Version with Latest** to page through every property difference without silent truncation.
 
 **Elements by Element Groups** accepts a JSON array or comma-separated list of at most 25 element-group IDs, matching the APS API limit. Recursive project-folder name searches share one global Max Items, Max Pages, and Timeout budget across root and descendant requests.
@@ -117,6 +119,8 @@ When **Continue On Fail** is enabled, inspect the returned error metadata before
 npm install
 npm run dev
 ```
+
+Release candidates are checked against the generic [live validation matrix](live-validation.md). The latest redacted run is recorded in [read-only live validation — 2026-08-08](live-validation-2026-08-08.md).
 
 Quality checks:
 

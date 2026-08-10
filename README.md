@@ -82,7 +82,9 @@ The project uses the official `@n8n/node-cli`. A production build is written to 
 
 ## Release process
 
-Version tags trigger `.github/workflows/publish.yml`, which publishes to npm with provenance. npm trusted publishing for `skoglidigital/n8n-nodes-aps` must be configured before the first release.
+Version tags trigger `.github/workflows/publish.yml`, which publishes to npm with provenance. Because npm Trusted Publishing is configured on an existing package, the first beta bootstraps the package through the same workflow with a temporary granular npm token. After that release, the package is connected to `publish.yml` as a Trusted Publisher and the temporary token is removed and revoked.
+
+Prereleases use the npm `beta` dist-tag. Remove the beta publish tag before the first stable release so stable versions publish under `latest`.
 
 ## License
 

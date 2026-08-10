@@ -6,6 +6,8 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## 0.1.0-beta.1 - 2026-08-10
+
 ### Added
 
 - Initial APS-only extraction from `skoglidigital/n8n-custom-nodes`.
@@ -22,6 +24,8 @@ The project follows [Semantic Versioning](https://semver.org/).
 - Removed incomplete AEC geometry presets that returned only GraphQL type metadata.
 - Made webhook signature verification require the exact raw request body and stopped copying signature tokens into workflow static data.
 - Applied one global item, page, and elapsed-time budget to recursive AEC project-folder searches.
+- Added the Data Management project ID to curated AEC project results so workflows can join the two project-ID namespaces without raw GraphQL.
+- Made Node's built-in test discovery work on the declared Node.js 22 minimum and made the clean-install smoke test fail fast on older runtimes.
 
 ### Security
 

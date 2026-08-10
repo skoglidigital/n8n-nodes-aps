@@ -366,6 +366,14 @@ test('node groups predefined AEC Data Model resources and exposes exact Referenc
 	assert.deepEqual(presetLimit.displayOptions.show.operation, CONNECTION_PRESET_QUERY_NAMES);
 
 	assert.match(aecDataModelTestables.AEC_DATA_MODEL_PRESETS.projects.query, /pagination: \{ limit: \$limit, cursor: \$cursor \}/);
+	assert.match(
+		aecDataModelTestables.AEC_DATA_MODEL_PRESETS.project.query,
+		/alternativeIdentifiers \{\s*dataManagementAPIProjectId\s*\}/,
+	);
+	assert.match(
+		aecDataModelTestables.AEC_DATA_MODEL_PRESETS.projects.query,
+		/alternativeIdentifiers \{\s*dataManagementAPIProjectId\s*\}/,
+	);
 	assert.equal(aecDataModelTestables.AEC_DATA_MODEL_PRESETS.hubs.operation, 'getMany');
 	assert.equal(aecDataModelTestables.AEC_DATA_MODEL_PRESETS.hubs.connectionPath, 'hubs');
 	assert.equal(aecDataModelTestables.AEC_DATA_MODEL_PRESETS.projects.operation, 'getMany');
@@ -1100,7 +1108,21 @@ test('predefined projects operation paginates without manual connection settings
 				return {
 					data: {
 						projects: {
-							results: cursor ? [{ id: 'p2', name: 'Project 2' }] : [{ id: 'p1', name: 'Project 1' }],
+							results: cursor
+								? [
+									{
+										id: 'p2',
+										name: 'Project 2',
+										alternativeIdentifiers: { dataManagementAPIProjectId: 'b.dm-project-2' },
+									},
+								]
+								: [
+									{
+										id: 'p1',
+										name: 'Project 1',
+										alternativeIdentifiers: { dataManagementAPIProjectId: 'b.dm-project-1' },
+									},
+								],
 							pagination: { cursor: cursor ? null : 'next' },
 						},
 					},
@@ -1112,9 +1134,14 @@ test('predefined projects operation paginates without manual connection settings
 	const result = await node.execute.call(context);
 
 	assert.deepEqual(result[0][0].json.data.results.map((item) => item.id), ['p1', 'p2']);
+	assert.deepEqual(
+		result[0][0].json.data.results.map((item) => item.alternativeIdentifiers.dataManagementAPIProjectId),
+		['b.dm-project-1', 'b.dm-project-2'],
+	);
 	assert.equal(result[0][0].json.data.pagination.pagesFetched, 2);
 	assert.equal(calls.length, 2);
 	assert.match(calls[0].query, /projects\(hubId: \$hubId, pagination: \{ limit: \$limit, cursor: \$cursor \}\)/);
+	assert.match(calls[0].query, /alternativeIdentifiers \{\s*dataManagementAPIProjectId\s*\}/);
 	assert.deepEqual(calls[0].variables, { hubId: 'hub-1', limit: 99 });
 	assert.deepEqual(calls[1].variables, { hubId: 'hub-1', limit: 99, cursor: 'next' });
 });

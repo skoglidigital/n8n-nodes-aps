@@ -6,6 +6,14 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
+const minimumNodeMajor = 22;
+const currentNodeMajor = Number.parseInt(process.versions.node.split('.', 1)[0], 10);
+if (!Number.isInteger(currentNodeMajor) || currentNodeMajor < minimumNodeMajor) {
+	throw new Error(
+		`The clean n8n smoke test requires Node.js ${minimumNodeMajor} or newer; current runtime is ${process.versions.node}.`,
+	);
+}
+
 const execFileAsync = promisify(execFile);
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const packageJson = JSON.parse(await readFile(join(repoRoot, 'package.json'), 'utf8'));
