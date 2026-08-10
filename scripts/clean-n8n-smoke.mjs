@@ -254,15 +254,40 @@ function getResponseCookie(response) {
 }
 
 async function fetchJson(url, authCookie) {
-	const response = await fetch(url, { headers: { cookie: authCookie } });
-	if (!response.ok) {
-		throw new Error(`GET ${url} returned ${response.status}.`);
+	const maxAttempts = 3;
+	for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+		try {
+			const response = await fetch(url, {
+				headers: {
+					accept: 'application/json',
+					'accept-encoding': 'identity',
+					cookie: authCookie,
+				},
+			});
+			if (!response.ok) {
+				throw new Error(`GET ${url} returned ${response.status}.`);
+			}
+			const contentType = response.headers.get('content-type') ?? '';
+			if (!contentType.includes('application/json')) {
+				throw new Error(`GET ${url} returned '${contentType || 'unknown'}' instead of JSON.`);
+			}
+
+			const body = await response.text();
+			try {
+				return JSON.parse(body);
+			} catch (error) {
+				throw new Error(
+					`GET ${url} returned malformed JSON (${Buffer.byteLength(body)} bytes).`,
+					{ cause: error },
+				);
+			}
+		} catch (error) {
+			if (attempt === maxAttempts) {
+				throw new Error(`GET ${url} failed after ${maxAttempts} attempts.`, { cause: error });
+			}
+			await new Promise((resolveDelay) => setTimeout(resolveDelay, attempt * 500));
+		}
 	}
-	const contentType = response.headers.get('content-type') ?? '';
-	if (!contentType.includes('application/json')) {
-		throw new Error(`GET ${url} returned '${contentType || 'unknown'}' instead of JSON.`);
-	}
-	return await response.json();
 }
 
 async function stopProcess(child) {
