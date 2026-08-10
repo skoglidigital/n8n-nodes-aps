@@ -6,6 +6,14 @@ The project follows [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## 0.1.0-beta.2 - 2026-08-10
+
+### Changed
+
+- Switched subsequent npm releases from the bootstrap token to OIDC Trusted Publishing.
+- Ensured prerelease publishing uses the package's `beta` dist-tag explicitly.
+- Retried transient clean-install n8n catalog reads to make release verification more robust.
+
 ## 0.1.0-beta.1 - 2026-08-10
 
 ### Added

@@ -19,32 +19,9 @@
 #
 # ─── ONE-TIME SETUP ────────────────────────────────────────────────────────────
 #
-# Bootstrap — first publication of a brand-new package:
-#   A trusted publisher can only be configured from an existing package's npm
-#   settings. For 0.1.0-beta.1, create a temporary granular npm token, add it
-#   as the NPM_TOKEN repository secret, and publish through this workflow. The
-#   package's publishConfig keeps that release on the "beta" dist-tag.
-#
-# OIDC Trusted Publishing — all subsequent releases (recommended):
-#   1. After the bootstrap release, open the package's settings on npmjs.com.
-#   2. Under "Publish access" → "Trusted Publishers", click "Add a publisher".
-#   3. Select GitHub Actions and fill in:
-#        Repository owner: skoglidigital
-#        Repository name:  n8n-nodes-aps
-#        Workflow name:    publish.yml
-#        Environment:      (leave blank unless you use GitHub Environments)
-#        Allowed action:   npm publish
-#   4. Delete the NPM_TOKEN secret and revoke the bootstrap token. GitHub's OIDC
-#      token is used instead — no secret ever touches your repo settings.
-#
-# npm token authentication (bootstrap/fallback):
-#   1. On npmjs.com: Access Tokens → Generate New Token → Granular Access Token.
-#      Give it the minimum publish access required for the new public package.
-#   2. In GitHub: Settings → Secrets and variables → Actions → New secret.
-#      Name it NPM_TOKEN and paste the token value.
-#
-# Both options work with --provenance. Provenance is signed by GitHub's OIDC
-# infrastructure regardless of how npm authentication is handled.
+# OIDC Trusted Publishing is configured on npm for this exact repository and
+# workflow. GitHub mints a short-lived publish credential for each release; no
+# long-lived npm token is read or written by this workflow.
 #
 # ─── TAG CONVENTION ────────────────────────────────────────────────────────────
 #
@@ -87,8 +64,11 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 'lts/*'
+          node-version: '22'
           cache: 'npm'
+
+      - name: Install Trusted Publishing-compatible npm
+        run: npm install --global npm@11.6.2
 
       - name: Install dependencies
         run: npm ci
@@ -99,16 +79,8 @@ jobs:
           test "$GITHUB_REF_NAME" = "$PACKAGE_VERSION"
 
       - name: Release
-        # Publishes to npm with a provenance attestation (requires id-token: write above).
+        # Publishes through npm Trusted Publishing with a provenance attestation.
         # Lint and build run automatically as part of the release process.
-        #
-        # Trusted Publishing (OIDC): leave NPM_TOKEN unset — the token step is
-        # skipped and npm uses the OIDC exchange instead.
-        # Token bootstrap/fallback: set NPM_TOKEN in repo secrets — it is
-        # written to .npmrc here before publishing.
         run: |
-          [ -n "$NPM_TOKEN" ] && npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
           PUBLISH_TAG="$(node -p "require('./package.json').publishConfig?.tag || 'latest'")"
           NPM_CONFIG_TAG="$PUBLISH_TAG" npm run release
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
