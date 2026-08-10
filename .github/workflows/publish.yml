@@ -108,6 +108,7 @@ jobs:
         # written to .npmrc here before publishing.
         run: |
           [ -n "$NPM_TOKEN" ] && npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
-          npm run release
+          PUBLISH_TAG="$(node -p "require('./package.json').publishConfig?.tag || 'latest'")"
+          NPM_CONFIG_TAG="$PUBLISH_TAG" npm run release
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
