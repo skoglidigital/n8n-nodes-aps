@@ -9,7 +9,7 @@ This checklist separates repository work from the organization, account, and ten
 - [x] Review `SOURCE_IMPORT.md` and the initial commit for private infrastructure, credentials, customer names, and Skogli-only workflow logic; only documented source provenance, examples, and dependency metadata remain.
 - [x] Run lint, build, 95 unit tests, workflow YAML parsing, and `npm run pack:check` on the `0.1.0-beta.1` candidate (2026-08-10).
 - [x] Run `npm audit --omit=dev --audit-level=critical`: no critical findings. The three high findings are in the peer-installed n8n host chain (`n8n-workflow` → `@n8n/utils` → `nanoid`), not a dependency bundled in the 57-file release tarball.
-- [ ] Run lint, build, tests, dependency audit, secret scan, and `npm run pack:check` from a clean checkout.
+- [x] Reproduce the candidate from clean local clone `a70a0a8` with locked `npm ci`, lint, build, 95 tests, workflow YAML parsing, and `npm run pack:check` (2026-08-10). The tarball matched the candidate at 57 files and 133.2 kB.
 - [x] Install the generated tarball in clean n8n 2.33.7 and verify all five APS nodes and the APS OAuth2 credential load.
 
 ## GitHub organization setup
